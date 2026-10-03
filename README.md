@@ -1,85 +1,51 @@
-# repo-template
+# dockhide
 
-Starter template for new zackwag repos. Handles the things a GitHub
-"template repository" can't carry over on its own: branch protection,
-squash-merge-only, and Conventional Commits enforcement.
+Hide any macOS app's Dock icon, and put it back later.
+
+Some apps (menu bar utilities, docking station helpers, sync agents) insist on
+a Dock icon you never click. `dockhide` sets
+[`LSUIElement`](https://developer.apple.com/documentation/bundleresources/information-property-list/lsuielement)
+in the app's `Info.plist`, which tells macOS to treat it as an agent app (no Dock
+icon, no app switcher entry), then ad-hoc re-signs the bundle so it still launches.
+
+## Install
+
+```sh
+brew install zackwag/tap/dockhide
+```
+
+Or copy [`dockhide`](dockhide) anywhere on your `PATH`.
 
 ## Usage
 
-1. Create the new repo from this template:
-   ```
-   gh repo create OWNER/NEW-REPO --template zackwag/repo-template --public
-   ```
-2. Clone it, then run the setup script once from inside it:
-   ```
-   ./scripts/configure-repo.sh
-   ```
-   This applies to the new repo's default branch:
-   - Squash merge only (merge commits and rebase merging disabled), with
-     the PR title always used as the squash commit message
-   - "Conventional Commits" required as a status check (see below)
-   - Branch protection: no force pushes, no deletions, enforced for admins too
-   - No required PR review (matches the account-wide default)
+```sh
+dockhide hide "CalDigit_Docking_Station_Utility"   # by name (searched in /Applications, ~/Applications)
+dockhide hide /Applications/Foo.app                # or by path
+dockhide status Foo                                # hidden / visible, and whether dockhide did it
+dockhide show Foo                                  # restore the original Dock behavior
+dockhide list                                      # every app dockhide has hidden
+```
 
-   If the repo has other CI, pass the job name(s) to also require as status
-   checks — for example, the two lint jobs described below:
-   ```
-   ./scripts/configure-repo.sh OWNER/NEW-REPO "ShellCheck" "actionlint"
-   ```
+`hide`, `show` and `status` take several apps at once. `sudo` is used only
+when the app bundle isn't writable by you (e.g. apps installed by a `.pkg`).
+Quit and reopen a running app for the change to take effect.
 
-3. Delete or replace `.github/workflows/test.yml` — it's just a placeholder
-   showing the "Test" job name convention used elsewhere in the account.
+## Things to know
 
-## Conventional Commits
+- **App updates undo it.** An update replaces `Info.plist`, so the Dock icon
+  comes back. Run `dockhide hide` again; `dockhide list` won't show apps whose
+  update wiped the change, so keep your own list (or a script) of what you hide.
+- **The app's signature becomes ad hoc.** Editing `Info.plist` breaks the
+  developer's signature, so `dockhide` re-signs with `codesign --sign -`. Apps
+  that rely on entitlements tied to their developer signature (iCloud, some
+  keychain access) may misbehave afterwards; `dockhide show` doesn't restore
+  the original signature, but reinstalling the app does.
+- **Refused apps:** Mac App Store apps (re-signing stops them launching) and
+  system apps under `/System` (protected by SIP).
+- `show` restores the exact original `LSUIElement` value, which `hide` records in
+  a `DockhideOriginalLSUIElement` key in the app's `Info.plist`. Apps hidden
+  some other way (by hand, or by the app itself) are left alone.
 
-`.github/workflows/conventional-commits.yml` enforces
-[Conventional Commits](https://www.conventionalcommits.org) formatting
-(`feat:`, `fix:`, `chore:`, etc.) on whatever actually lands on the default
-branch:
+## License
 
-- On a PR, it lints the **PR title** — since squash merges use the PR title
-  as the commit message, that's what ends up in history.
-- On a direct push to `main`/`master` (no PR), it lints the **commit
-  message** instead, so pushing straight to the default branch still works
-  as long as the message follows the format.
-
-Both paths report under the same "Conventional Commits" check name, so
-either one satisfies the required status check set by the setup script.
-
-## Linting
-
-`.github/workflows/lint.yml` lints the template's own content on every push
-and PR to `main`:
-
-- **ShellCheck** on everything under `scripts/`
-- **actionlint** on the workflow files under `.github/workflows/`
-
-Both are separate jobs so either can be required as its own status check
-(see the setup script usage above). Neither is required by default —
-`configure-repo.sh` only requires "Conventional Commits" unless you pass
-additional job names.
-
-## Releases
-
-`.github/workflows/release-please.yml` runs
-[release-please](https://github.com/googleapis/release-please) on every push
-to `main`: it keeps a release PR up to date from Conventional Commits, and on
-merge tags a GitHub Release and updates `CHANGELOG.md`.
-
-- `release-please-config.json` defaults to `release-type: simple` (no
-  package manifest assumed) with `include-component-in-tag: false`, so tags
-  are plain `vX.Y.Z` rather than `<component>-vX.Y.Z`. Change `release-type`
-  (e.g. to `node`) if the repo has a package manifest release-please should
-  bump.
-- `.release-please-manifest.json` starts at `0.0.0`; release-please bumps it
-  from there based on commit types.
-- For an npm package, add a `publish-npm` job gated on this workflow's
-  `release_created` output (see e.g. homebridge-somneo's workflow for the
-  pattern) to publish on release.
-
-## Note on private repos
-
-Branch protection is a GitHub Pro feature for private repositories on
-personal accounts (this account is on Free). For a private repo, the script
-will still apply squash-merge-only but skip branch protection with a clear
-message. Public repos aren't affected by this limit.
+[MIT](LICENSE)
