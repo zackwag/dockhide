@@ -3,6 +3,7 @@ name: Release Please
 on:
   push:
     branches: [main]
+  workflow_dispatch: {}
 
 permissions:
   contents: write
@@ -12,5 +13,9 @@ jobs:
   release-please:
     runs-on: ubuntu-latest
     steps:
+      # Uses a PAT rather than GITHUB_TOKEN: tags pushed with GITHUB_TOKEN don't
+      # trigger other workflows, and release.yml needs to run on the new tag.
       - name: Create / update release PR, or tag + publish a GitHub Release
         uses: googleapis/release-please-action@v4
+        with:
+          token: ${{ secrets.RELEASE_PLEASE_TOKEN }}
