@@ -42,6 +42,10 @@ Quit and reopen a running app for the change to take effect.
   the original signature, but reinstalling the app does.
 - **Refused apps:** Mac App Store apps (re-signing stops them launching) and
   system apps under `/System` (protected by SIP).
+- **Open downloaded apps once first.** A freshly downloaded app (including one
+  installed with `brew install --cask`) carries a quarantine flag, and Gatekeeper
+  blocks it with "Apple could not verify…" once it's re-signed ad hoc.
+  `dockhide` refuses such apps until you've opened and approved them once.
 - `show` restores the exact original `LSUIElement` value, which `hide` records in
   a `DockhideOriginalLSUIElement` key in the app's `Info.plist`. Apps hidden
   some other way (by hand, or by the app itself) are left alone.
