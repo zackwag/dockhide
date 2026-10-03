@@ -98,6 +98,14 @@ refuse_unsafe() {
   if [[ -d "${APP}/Contents/_MASReceipt" ]]; then
     die "${APP} is from the Mac App Store; re-signing it would stop it launching"
   fi
+
+  # Gatekeeper rejects a quarantined app with an ad-hoc signature unless the
+  # user already approved it, which sets the 0x40 bit in the quarantine flags.
+  local quarantine
+  quarantine="$(xattr -p com.apple.quarantine "$APP" 2>/dev/null || true)"
+  if [[ -n "$quarantine" ]] && (( (16#${quarantine%%;*} & 0x40) == 0 )); then
+    die "$(app_name) hasn't been opened yet; open it once and approve it, then re-run dockhide"
+  fi
 }
 
 app_name() {
